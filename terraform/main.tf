@@ -402,4 +402,36 @@ resource "aws_instance" "database" {
   }
 }
 
+#Creating state
+resource "aws_s3_bucket" "tf_state" {
+  bucket = "terraform-state-project1-joao-irene"
+}
 
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.tf_state.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_dynamodb_table" "tf_lock" {
+  name         = "terraform-lock"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+
+terraform {
+  backend "s3" {
+    bucket         = "terraform-state-project1-joao-irene"
+    key            = "project/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-lock"
+    encrypt        = true
+  }
+}
