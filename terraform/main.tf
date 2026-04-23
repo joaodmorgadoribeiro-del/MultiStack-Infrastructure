@@ -142,15 +142,14 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private[count.index].id
 }
 
-# AMI – Amazon Linux 2023 (latest)
+# AMI – Ubuntu Server 24.04 LTS (latest)
 
-data "aws_ami" "al2023" {
+data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["amazon"]
-
+  owners      = ["099720109477"] 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-x86_64"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {
@@ -285,11 +284,14 @@ resource "aws_security_group" "database" {
   }
 }
 
-# Instance A – Frontend (ASG across public subnets)
+# --- INSTANCE A: Launch Template for ASG (Frontend) ---
 resource "aws_launch_template" "frontend" {
   name_prefix   = "${var.project_name}-frontend-lt-"
-  image_id      = data.aws_ami.al2023.id
+  
+  image_id      = data.aws_ami.ubuntu.id 
   instance_type = var.instance_type
+  
+  key_name      = "key-pair-name"
 
   network_interfaces {
     associate_public_ip_address = true
@@ -339,13 +341,14 @@ resource "aws_autoscaling_group" "frontend" {
   }
 }
 
-# Instance B – Backend: Redis + Worker (.NET)
-# Deployed in private subnet AZ-1
-
+# --- INSTANCE B: Backend (Redis + Worker) ---
 resource "aws_instance" "backend" {
-  ami           = data.aws_ami.al2023.id
+  # Alterado de data.aws_ami.al2023.id para o data source do Ubuntu
+  ami           = data.aws_ami.ubuntu.id 
   instance_type = var.instance_type
   subnet_id     = aws_subnet.private[0].id
+
+  key_name      = "key-pair-name" 
 
   vpc_security_group_ids = [aws_security_group.backend.id]
 
@@ -356,12 +359,13 @@ resource "aws_instance" "backend" {
   }
 }
 
-# Instance C – Database: PostgreSQL (primary)
-
+# --- INSTANCE C: Database (PostgreSQL) ---
 resource "aws_instance" "database" {
-  ami           = data.aws_ami.al2023.id
+  ami           = data.aws_ami.ubuntu.id 
   instance_type = var.instance_type
   subnet_id     = aws_subnet.private[0].id
+
+  key_name      = "key-pair-name"
 
   vpc_security_group_ids = [aws_security_group.database.id]
 
