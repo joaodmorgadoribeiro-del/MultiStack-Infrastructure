@@ -1,8 +1,8 @@
 [frontend]
-frontend-instance ansible_host={{ frontend_ip }} user=ubuntu
-
+frontend-instance-1
+ 
 [backend]
-backend-instance ansible_host={{ backend_ip }} user=ubuntu
-
+backend-instance-1
+ 
 [db]
-db-instance ansible_host={{ db_ip }} user=ubuntu
+db-instance-1
