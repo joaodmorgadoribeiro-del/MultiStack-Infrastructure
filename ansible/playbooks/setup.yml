@@ -1,20 +1,7 @@
----
-# - name: Update apt package index
-#   ansible.builtin.apt:
-#     update_cache: yes
-
-- name: Update apt package index
-  ansible.builtin.apt:
-    update_cache: yes
-
-# - name: Install Docker if not present
-#   ansible.builtin.package:
-#     name: docker.io
-#     state: present
 
 - name: Prepare all instances with Docker
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Update apt and install Docker
       apt:
@@ -33,7 +20,7 @@
 #Database
 - name: Deploy PostgreSQL
   hosts: database
-  become: yes
+  become: true
   tasks:
     - name: Run Postgres Container
       docker_container:
@@ -42,25 +29,11 @@
         state: started
         restart_policy: always
 
-# - name: Pull Docker Image
-#   docker_image:
-#     name: ireneromero95/vote
-#     source: pull
-#     tag: latest
-
-# - name: Run Container
-#   docker_container:
-#     name: client
-#     image: ireneromero95/client:latest # Change!
-#     ports:
-#       - '80:80' # port mappings
-#     state: started
-
 #Backend
 
 - name: Deploy Backend Services
   hosts: backend
-  become: yes
+  become: true
   tasks:
     - name: Run Redis Container
       docker_container:
@@ -82,7 +55,7 @@
 #Frontend
 - name: Deploy Frontend Services
   hosts: frontend
-  become: yes
+  become: true
   tasks:
     - name: Run Vote App (Python)
       docker_container:
