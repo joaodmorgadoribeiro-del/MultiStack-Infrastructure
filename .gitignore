@@ -1,0 +1,28 @@
+# --- Terraform ---
+# Ignore the massive provider binaries (the 674MB files)
+**/.terraform/
+.terraform*
+
+# Ignore local state files (since we use S3)
+*.tfstate
+*.tfstate.*
+
+# Ignore sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# --- Ansible ---
+# Ignore retry files and logs
+*.retry
+ansible.log
+
+# --- Security (CRITICAL) ---
+# Never upload your private SSH keys
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
