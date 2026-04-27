@@ -103,19 +103,37 @@
           - "5000:80"
         env:
           REDIS_HOST: "{{ hostvars['backend-instance-1']['private_ip'] }}"
-
+    
     - name: Run Result App (Node.js)
       docker_container:
         name: result
         image: ireneromero95/result:latest
         state: started
+        recreate: yes
         restart_policy: always
-        networks:
-          - name: front-network
         ports:
           - "4000:80"
         env:
-          DB_HOST: "{{ hostvars['db-instance-1']['private_ip'] }}"
-          DB_USER: "postgres"
-          DB_PASSWORD: "password"
-          DB_NAME: "postgres"
+          PG_HOST: "{{ hostvars['db-instance-1']['private_ip'] }}"
+          PG_PORT: "5432"
+          PG_USER: "postgres"
+          PG_PASSWORD: "password"
+          PG_DATABASE: "postgres"
+
+
+
+    #- name: Run Result App (Node.js)
+      #docker_container:
+        #name: result
+        #image: ireneromero95/result:latest
+        #state: started
+        #restart_policy: always
+       #networks:
+          #- name: front-network
+        #ports:
+          #- "4000:80"
+        #env:
+         # DB_HOST: "{{ hostvars['db-instance-1']['private_ip'] }}"
+          #DB_USER: "postgres"
+          #DB_PASSWORD: "password"
+         # DB_NAME: "postgres"
