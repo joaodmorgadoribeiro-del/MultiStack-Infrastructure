@@ -5,6 +5,7 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+ # VPC
 module "vpc" {
   source               = "./modules/vpc"
   project_name         = var.project_name
@@ -14,137 +15,7 @@ module "vpc" {
   data_azs             = data.aws_availability_zones.available.names
 }
 
-# # VPC
 
-# resource "aws_vpc" "main" {
-#   cidr_block           = var.vpc_cidr
-#   enable_dns_support   = true
-#   enable_dns_hostnames = true
-
-#   tags = {
-#     Name    = "${var.project_name}-vpc"
-#     Project = var.project_name
-#   }
-# }
-
-# # Internet Gateway
-
-# resource "aws_internet_gateway" "main" {
-#   vpc_id = module.vpc.vpc_id
-
-#   tags = {
-#     Name    = "${var.project_name}-igw"
-#     Project = var.project_name
-#   }
-# }
-
-# # Public Subnets
-
-# resource "aws_subnet" "public" {
-#   count = length(var.public_subnet_cidrs)
-
-#   vpc_id                  = module.vpc.vpc_id
-#   cidr_block              = var.public_subnet_cidrs[count.index]
-#   availability_zone       = data.aws_availability_zones.available.names[count.index]
-#   map_public_ip_on_launch = true
-
-#   tags = {
-#     Name    = "${var.project_name}-public-subnet-${count.index + 1}"
-#     Project = var.project_name
-#     Tier    = "public"
-#   }
-# }
-
-# # Private Subnets
-
-# resource "aws_subnet" "private" {
-#   count = length(var.private_subnet_cidrs)
-
-#   vpc_id            = module.vpc.vpc_id
-#   cidr_block        = var.private_subnet_cidrs[count.index]
-#   availability_zone = data.aws_availability_zones.available.names[count.index]
-
-#   tags = {
-#     Name    = "${var.project_name}-private-subnet-${count.index + 1}"
-#     Project = var.project_name
-#     Tier    = "private"
-#   }
-# }
-
-# # Elastic IP + NAT Gateway (one per public subnet)
-
-# resource "aws_eip" "nat" {
-#   count  = length(var.public_subnet_cidrs)
-#   domain = "vpc"
-
-#   tags = {
-#     Name    = "${var.project_name}-eip-${count.index + 1}"
-#     Project = var.project_name
-#   }
-# }
-
-# resource "aws_nat_gateway" "main" {
-#   count = length(var.public_subnet_cidrs)
-
-#   allocation_id = aws_eip.nat[count.index].id
-#   subnet_id     = aws_subnet.public[count.index].id
-
-#   tags = {
-#     Name    = "${var.project_name}-nat-${count.index + 1}"
-#     Project = var.project_name
-#   }
-
-#   depends_on = [aws_internet_gateway.main]
-# }
-
-# # Public Route Table
-
-# resource "aws_route_table" "public" {
-#   vpc_id = module.vpc.vpc_id
-
-#   route {
-#     cidr_block = "0.0.0.0/0"
-#     gateway_id = aws_internet_gateway.main.id
-#   }
-
-#   tags = {
-#     Name    = "${var.project_name}-public-rt"
-#     Project = var.project_name
-#   }
-# }
-
-# resource "aws_route_table_association" "public" {
-#   count = length(var.public_subnet_cidrs)
-
-#   subnet_id      = aws_subnet.public[count.index].id
-#   route_table_id = aws_route_table.public.id
-# }
-
-# # Private Route Tables (one per AZ / NAT GW)
-
-# resource "aws_route_table" "private" {
-#   count  = length(var.private_subnet_cidrs)
-#   vpc_id = module.vpc.vpc_id
-
-#   route {
-#     cidr_block     = "0.0.0.0/0"
-#     nat_gateway_id = aws_nat_gateway.main[count.index].id
-#   }
-
-#   tags = {
-#     Name    = "${var.project_name}-private-rt-${count.index + 1}"
-#     Project = var.project_name
-#   }
-# }
-
-# resource "aws_route_table_association" "private" {
-#   count = length(var.private_subnet_cidrs)
-
-#   subnet_id      = aws_subnet.private[count.index].id
-#   route_table_id = aws_route_table.private[count.index].id
-# }
-
-# AMI – Ubuntu Server 24.04 LTS (latest)
 
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -314,70 +185,6 @@ resource "aws_launch_template" "frontend" {
   }
 }
 
-#Frontend
-
-# resource "aws_autoscaling_group" "frontend" {
-#   name                = "${var.project_name}-asg-frontend"
-#   desired_capacity    = 1
-#   min_size            = 1
-#   max_size            = 2
-#   vpc_zone_identifier = aws_subnet.public[*].id
-
-#   launch_template {
-#     id      = aws_launch_template.frontend.id
-#     version = "$Latest"
-#   }
-
-#   tag {
-#     key                 = "Name"
-#     value               = "${var.project_name}-asg-frontend"
-#     propagate_at_launch = false
-#   }
-
-#   tag {
-#     key                 = "Project"
-#     value               = var.project_name
-#     propagate_at_launch = true
-#   }
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-# # --- INSTANCE B: Backend (Redis + Worker) ---
-# resource "aws_instance" "backend" {
-#   ami           = data.aws_ami.ubuntu.id
-#   instance_type = var.instance_type
-#   subnet_id     = module.vpc.private_subnet_ids[0]
-
-#   key_name = "joao-irene-useast1"
-
-#   vpc_security_group_ids = [aws_security_group.backend.id]
-
-#   tags = {
-#     Name    = "${var.project_name}-instance-b-backend"
-#     Project = var.project_name
-#     Tier    = "backend"
-#   }
-# }
-
-# # --- INSTANCE C: Database (PostgreSQL) ---
-# resource "aws_instance" "database" {
-#   ami           = data.aws_ami.ubuntu.id
-#   instance_type = var.instance_type
-#   subnet_id     = module.vpc.private_subnet_ids[0]
-
-#   key_name = "joao-irene-useast1"
-
-#   vpc_security_group_ids = [aws_security_group.database.id]
-
-#   tags = {
-#     Name    = "${var.project_name}-instance-c-database"
-#     Project = var.project_name
-#     Tier    = "database"
-#   }
-# }
 
 #Creating state
 resource "aws_s3_bucket" "tf_state" {
