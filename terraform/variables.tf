@@ -34,3 +34,9 @@ variable "instance_type" {
   type        = string
   default     = "t3.micro"
 }
+
+variable "key_name" {
+  description = "Name of the existing AWS Key Pair to use for EC2 instances."
+  type        = string
+  default     = "joao-irene-useast1"
+}
