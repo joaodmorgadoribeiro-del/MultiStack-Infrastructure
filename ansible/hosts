@@ -1,17 +1,17 @@
 [bastion]
-bastion-instance-1 ansible_host=44.200.227.238
+bastion-instance-1 ansible_host=34.234.234.160
 
 [backend]
-backend-instance-1 private_ip=10.20.11.14
+backend-instance-1 private_ip=10.20.11.148
 
 [database]
-db-instance-1 private_ip=10.20.12.143
+db-instance-1 private_ip=10.20.12.138
 
 [vote]
-vote-instance-1 private_ip=10.20.11.4
+vote-instance-1 private_ip=10.20.11.225
 
 [result]
-result-instance-1 private_ip=10.20.11.114
+result-instance-1 private_ip=10.20.11.65
 
 [all:vars]
 ansible_user=ubuntu
