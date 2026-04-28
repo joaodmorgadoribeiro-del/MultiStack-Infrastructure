@@ -1,139 +1,148 @@
 
- #Data sources
+#Data sources
 
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# VPC
-
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name    = "${var.project_name}-vpc"
-    Project = var.project_name
-  }
+module "vpc" {
+  source               = "./modules/vpc"
+  project_name         = var.project_name
+  vpc_cidr             = var.vpc_cidr
+  public_subnet_cidrs  = var.public_subnet_cidrs
+  private_subnet_cidrs = var.private_subnet_cidrs
+  data_azs             = data.aws_availability_zones.available.names
 }
 
-# Internet Gateway
+# # VPC
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
+# resource "aws_vpc" "main" {
+#   cidr_block           = var.vpc_cidr
+#   enable_dns_support   = true
+#   enable_dns_hostnames = true
 
-  tags = {
-    Name    = "${var.project_name}-igw"
-    Project = var.project_name
-  }
-}
+#   tags = {
+#     Name    = "${var.project_name}-vpc"
+#     Project = var.project_name
+#   }
+# }
 
-# Public Subnets
+# # Internet Gateway
 
-resource "aws_subnet" "public" {
-  count = length(var.public_subnet_cidrs)
+# resource "aws_internet_gateway" "main" {
+#   vpc_id = module.vpc.vpc_id
 
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = var.public_subnet_cidrs[count.index]
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
+#   tags = {
+#     Name    = "${var.project_name}-igw"
+#     Project = var.project_name
+#   }
+# }
 
-  tags = {
-    Name    = "${var.project_name}-public-subnet-${count.index + 1}"
-    Project = var.project_name
-    Tier    = "public"
-  }
-}
+# # Public Subnets
 
-# Private Subnets
+# resource "aws_subnet" "public" {
+#   count = length(var.public_subnet_cidrs)
 
-resource "aws_subnet" "private" {
-  count = length(var.private_subnet_cidrs)
+#   vpc_id                  = module.vpc.vpc_id
+#   cidr_block              = var.public_subnet_cidrs[count.index]
+#   availability_zone       = data.aws_availability_zones.available.names[count.index]
+#   map_public_ip_on_launch = true
 
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_subnet_cidrs[count.index]
-  availability_zone = data.aws_availability_zones.available.names[count.index]
+#   tags = {
+#     Name    = "${var.project_name}-public-subnet-${count.index + 1}"
+#     Project = var.project_name
+#     Tier    = "public"
+#   }
+# }
 
-  tags = {
-    Name    = "${var.project_name}-private-subnet-${count.index + 1}"
-    Project = var.project_name
-    Tier    = "private"
-  }
-}
+# # Private Subnets
 
-# Elastic IP + NAT Gateway (one per public subnet)
+# resource "aws_subnet" "private" {
+#   count = length(var.private_subnet_cidrs)
 
-resource "aws_eip" "nat" {
-  count  = length(var.public_subnet_cidrs)
-  domain = "vpc"
+#   vpc_id            = module.vpc.vpc_id
+#   cidr_block        = var.private_subnet_cidrs[count.index]
+#   availability_zone = data.aws_availability_zones.available.names[count.index]
 
-  tags = {
-    Name    = "${var.project_name}-eip-${count.index + 1}"
-    Project = var.project_name
-  }
-}
+#   tags = {
+#     Name    = "${var.project_name}-private-subnet-${count.index + 1}"
+#     Project = var.project_name
+#     Tier    = "private"
+#   }
+# }
 
-resource "aws_nat_gateway" "main" {
-  count = length(var.public_subnet_cidrs)
+# # Elastic IP + NAT Gateway (one per public subnet)
 
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+# resource "aws_eip" "nat" {
+#   count  = length(var.public_subnet_cidrs)
+#   domain = "vpc"
 
-  tags = {
-    Name    = "${var.project_name}-nat-${count.index + 1}"
-    Project = var.project_name
-  }
+#   tags = {
+#     Name    = "${var.project_name}-eip-${count.index + 1}"
+#     Project = var.project_name
+#   }
+# }
 
-  depends_on = [aws_internet_gateway.main]
-}
+# resource "aws_nat_gateway" "main" {
+#   count = length(var.public_subnet_cidrs)
 
-# Public Route Table
+#   allocation_id = aws_eip.nat[count.index].id
+#   subnet_id     = aws_subnet.public[count.index].id
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
+#   tags = {
+#     Name    = "${var.project_name}-nat-${count.index + 1}"
+#     Project = var.project_name
+#   }
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
+#   depends_on = [aws_internet_gateway.main]
+# }
 
-  tags = {
-    Name    = "${var.project_name}-public-rt"
-    Project = var.project_name
-  }
-}
+# # Public Route Table
 
-resource "aws_route_table_association" "public" {
-  count = length(var.public_subnet_cidrs)
+# resource "aws_route_table" "public" {
+#   vpc_id = module.vpc.vpc_id
 
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
-}
+#   route {
+#     cidr_block = "0.0.0.0/0"
+#     gateway_id = aws_internet_gateway.main.id
+#   }
 
-# Private Route Tables (one per AZ / NAT GW)
+#   tags = {
+#     Name    = "${var.project_name}-public-rt"
+#     Project = var.project_name
+#   }
+# }
 
-resource "aws_route_table" "private" {
-  count  = length(var.private_subnet_cidrs)
-  vpc_id = aws_vpc.main.id
+# resource "aws_route_table_association" "public" {
+#   count = length(var.public_subnet_cidrs)
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
-  }
+#   subnet_id      = aws_subnet.public[count.index].id
+#   route_table_id = aws_route_table.public.id
+# }
 
-  tags = {
-    Name    = "${var.project_name}-private-rt-${count.index + 1}"
-    Project = var.project_name
-  }
-}
+# # Private Route Tables (one per AZ / NAT GW)
 
-resource "aws_route_table_association" "private" {
-  count = length(var.private_subnet_cidrs)
+# resource "aws_route_table" "private" {
+#   count  = length(var.private_subnet_cidrs)
+#   vpc_id = module.vpc.vpc_id
 
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
-}
+#   route {
+#     cidr_block     = "0.0.0.0/0"
+#     nat_gateway_id = aws_nat_gateway.main[count.index].id
+#   }
+
+#   tags = {
+#     Name    = "${var.project_name}-private-rt-${count.index + 1}"
+#     Project = var.project_name
+#   }
+# }
+
+# resource "aws_route_table_association" "private" {
+#   count = length(var.private_subnet_cidrs)
+
+#   subnet_id      = aws_subnet.private[count.index].id
+#   route_table_id = aws_route_table.private[count.index].id
+# }
 
 # AMI – Ubuntu Server 24.04 LTS (latest)
 
@@ -154,128 +163,128 @@ data "aws_ami" "ubuntu" {
 # Security Groups
 
 # Instance A – Frontend (Vote :5000, Result :4000, SSH)
- resource "aws_security_group" "frontend" {
-   name        = "${var.project_name}-sg-frontend"
-   description = "Allow HTTP traffic to Vote and Result services plus SSH"
-   vpc_id      = aws_vpc.main.id
+resource "aws_security_group" "frontend" {
+  name        = "${var.project_name}-sg-frontend"
+  description = "Allow HTTP traffic to Vote and Result services plus SSH"
+  vpc_id      = module.vpc.vpc_id
 
-   ingress {
-     description = "Vote app (Flask)"
-     from_port   = 5000
-     to_port     = 5000
-     protocol    = "tcp"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  ingress {
+    description = "Vote app (Flask)"
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   ingress {
-     description = "Result app (Node.js)"
-     from_port   = 4000
-     to_port     = 4000
-     protocol    = "tcp"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  ingress {
+    description = "Result app (Node.js)"
+    from_port   = 4000
+    to_port     = 4000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   ingress {
-     description = "SSH"
-     from_port   = 22
-     to_port     = 22
-     protocol    = "tcp"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   egress {
-     from_port   = 0
-     to_port     = 0
-     protocol    = "-1"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   tags = {
-     Name    = "${var.project_name}-sg-frontend"
-     Project = var.project_name
-     Tier    = "frontend"
-   }
+  tags = {
+    Name    = "${var.project_name}-sg-frontend"
+    Project = var.project_name
+    Tier    = "frontend"
+  }
 }
 
 # # Instance B – Backend (Redis :6379, Worker – internal only)
- resource "aws_security_group" "backend" {
-   name        = "${var.project_name}-sg-backend"
-   description = "Allow Redis from frontend and SSH from VPC"
-   vpc_id      = aws_vpc.main.id
+resource "aws_security_group" "backend" {
+  name        = "${var.project_name}-sg-backend"
+  description = "Allow Redis from frontend and SSH from VPC"
+  vpc_id      = module.vpc.vpc_id
 
-   ingress {
-     description     = "Redis from frontend"
-     from_port       = 6379
-     to_port         = 6379
-     protocol        = "tcp"
-     security_groups = [aws_security_group.frontend.id]
-   }
+  ingress {
+    description     = "Redis from frontend"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend.id]
+  }
 
-   ingress {
-     description = "SSH from VPC"
-     from_port   = 22
-     to_port     = 22
-     protocol    = "tcp"
-     cidr_blocks = [var.vpc_cidr]
-   }
+  ingress {
+    description = "SSH from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
-   egress {
-     from_port   = 0
-     to_port     = 0
-     protocol    = "-1"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   tags = {
-     Name    = "${var.project_name}-sg-backend"
-     Project = var.project_name
-     Tier    = "backend"
-   }
- }
+  tags = {
+    Name    = "${var.project_name}-sg-backend"
+    Project = var.project_name
+    Tier    = "backend"
+  }
+}
 
 # # Instance C – Database (PostgreSQL :5432 from backend and frontend)
- resource "aws_security_group" "database" {
-   name        = "${var.project_name}-sg-database"
-   description = "Allow PostgreSQL from backend and frontend tiers"
-   vpc_id      = aws_vpc.main.id
+resource "aws_security_group" "database" {
+  name        = "${var.project_name}-sg-database"
+  description = "Allow PostgreSQL from backend and frontend tiers"
+  vpc_id      = module.vpc.vpc_id
 
-   ingress {
-     description     = "PostgreSQL from backend"
-     from_port       = 5432
-     to_port         = 5432
-     protocol        = "tcp"
-     security_groups = [aws_security_group.backend.id]
-   }
+  ingress {
+    description     = "PostgreSQL from backend"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend.id]
+  }
 
-   ingress {
-     description     = "PostgreSQL from frontend (Result reads DB)"
-     from_port       = 5432
-     to_port         = 5432
-     protocol        = "tcp"
-     security_groups = [aws_security_group.frontend.id]
-   }
+  ingress {
+    description     = "PostgreSQL from frontend (Result reads DB)"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend.id]
+  }
 
-   ingress {
-     description = "SSH from VPC"
-     from_port   = 22
-     to_port     = 22
-     protocol    = "tcp"
-     cidr_blocks = [var.vpc_cidr]
-   }
+  ingress {
+    description = "SSH from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
 
-   egress {
-     from_port   = 0
-     to_port     = 0
-     protocol    = "-1"
-     cidr_blocks = ["0.0.0.0/0"]
-   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-   tags = {
-     Name    = "${var.project_name}-sg-database"
-     Project = var.project_name
-     Tier    = "database"
-   }
- }
+  tags = {
+    Name    = "${var.project_name}-sg-database"
+    Project = var.project_name
+    Tier    = "database"
+  }
+}
 
 # --- INSTANCE A: Launch Template for ASG (Frontend) ---
 resource "aws_launch_template" "frontend" {
@@ -340,7 +349,7 @@ resource "aws_launch_template" "frontend" {
 # resource "aws_instance" "backend" {
 #   ami           = data.aws_ami.ubuntu.id
 #   instance_type = var.instance_type
-#   subnet_id     = aws_subnet.private[0].id
+#   subnet_id     = module.vpc.private_subnet_ids[0]
 
 #   key_name = "joao-irene-useast1"
 
@@ -357,7 +366,7 @@ resource "aws_launch_template" "frontend" {
 # resource "aws_instance" "database" {
 #   ami           = data.aws_ami.ubuntu.id
 #   instance_type = var.instance_type
-#   subnet_id     = aws_subnet.private[0].id
+#   subnet_id     = module.vpc.private_subnet_ids[0]
 
 #   key_name = "joao-irene-useast1"
 
@@ -381,7 +390,7 @@ resource "aws_s3_bucket_versioning" "versioning" {
   versioning_configuration {
     status = "Enabled"
   }
-} 
+}
 
 resource "aws_dynamodb_table" "tf_lock" {
   name         = "terraform-lock"
@@ -399,9 +408,9 @@ module "frontend" {
   has_public_ip  = true
   ami            = data.aws_ami.ubuntu.id
   instance_type  = var.instance_type
-  security_group = aws_security_group.frontend.id  
-  subnet         = aws_subnet.public[0].id          
-  key_name       = "joao-irene-useast1"   
+  security_group = aws_security_group.frontend.id
+  subnet         = module.vpc.public_subnet_ids[0]
+  key_name       = "joao-irene-useast1"
   tags           = { Name = "frontend-joao-irene" }
 }
 
@@ -410,9 +419,9 @@ module "backend" {
   has_public_ip  = false
   ami            = data.aws_ami.ubuntu.id
   instance_type  = var.instance_type
-  security_group = aws_security_group.backend.id  
-  subnet         = aws_subnet.private[0].id
-  key_name       = "joao-irene-useast1"   
+  security_group = aws_security_group.backend.id
+  subnet         = module.vpc.private_subnet_ids[0]
+  key_name       = "joao-irene-useast1"
   tags           = { Name = "backend-joao-irene" }
 }
 
@@ -421,8 +430,8 @@ module "database" {
   has_public_ip  = false
   ami            = data.aws_ami.ubuntu.id
   instance_type  = var.instance_type
-  security_group = aws_security_group.database.id  
-  subnet         = aws_subnet.private[0].id   
-  key_name       = "joao-irene-useast1"   
+  security_group = aws_security_group.database.id
+  subnet         = module.vpc.private_subnet_ids[1]
+  key_name       = "joao-irene-useast1"
   tags           = { Name = "database-joao-irene" }
 }

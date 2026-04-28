@@ -1,16 +1,18 @@
 output "vpc_id" {
-  value = aws_vpc.main.id
+  value = module.vpc.vpc_id
 }
 
-output "public_subnet_ids" {
-  value = aws_subnet.public[*].id
+output "public_subnet_id" {
+  value = module.vpc.public_subnet_ids[0]
 }
 
-output "private_subnet_ids" {
-  value = aws_subnet.private[*].id
+output "private_subnet_backend_id" {
+  value = module.vpc.private_subnet_ids[0]
 }
 
-# outputs.tf
+output "private_subnet_db_id" {
+  value = module.vpc.private_subnet_ids[1]
+}
 
 output "frontend_public_ip" {
   value = module.frontend.instance_public_ip
