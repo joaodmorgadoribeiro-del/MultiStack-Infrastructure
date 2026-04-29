@@ -7,13 +7,21 @@ A cloud-native voting application deployed on AWS using Docker, Terraform and An
 ## Architecture
 
 ```
+## Architecture
+
+​```
 Internet → Bastion Host (Public Subnet)
+                │         ├── Vote App  (Python/Flask :5000)
+                │         └── Result App (Node.js :4000)
                 │
                 └── SSH ProxyJump → Private Instances
-                                        ├── Vote EC2    (Python/Flask)
-                                        ├── Result EC2  (Node.js)
                                         ├── Backend EC2 (Redis + Worker .NET)
                                         └── Database EC2 (PostgreSQL)
+​```
+
+**Instance A** — Bastion Host (public subnet) — SSH gateway + Vote + Result apps
+**Instance B** — Backend (private subnet) — Redis + Worker (.NET)
+**Instance C** — Database (private subnet) — PostgreSQL
 ```
 
 ---
