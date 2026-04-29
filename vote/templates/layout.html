@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}The Best Pets{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cat-color: #C2855A;
+      --dog-color: #4A7C8E;
+      --bg: #F5F0E8;
+      --dark: #1A1410;
+      --card: #FFFDF8;
+      --radius: 24px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    header .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--cat-color);
+      margin-bottom: 12px;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 900;
+      color: var(--dark);
+      line-height: 1.05;
+    }
+
+    header p {
+      margin-top: 14px;
+      font-size: 16px;
+      color: #7A6E62;
+      font-weight: 300;
+    }
+
+    /* ── CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      max-width: 900px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      border: 2px solid transparent;
+      transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+    }
+
+    .card.cat:hover  { border-color: var(--cat-color); }
+    .card.dog:hover  { border-color: var(--dog-color); }
+    .card.cat.voted  { border-color: var(--cat-color); box-shadow: 0 16px 48px rgba(0,0,0,0.15); }
+    .card.dog.voted  { border-color: var(--dog-color); box-shadow: 0 16px 48px rgba(0,0,0,0.15); }
+
+    /* ── CARD IMAGE ── */
+    .card-image {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.cat .card-image { background: linear-gradient(135deg, #F5E6D3 0%, #EDD5B8 100%); }
+    .card.dog .card-image { background: linear-gradient(135deg, #D3E8F0 0%, #B8D9E8 100%); }
+
+    .pet-emoji {
+      font-size: 120px;
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
+      user-select: none;
+    }
+
+    .card:hover .pet-emoji { transform: scale(1.1) rotate(-5deg); }
+
+    .pet-photo {
+      position: absolute;
+      inset: 0;
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .card.voted .pet-photo { opacity: 1; }
+
+    .card.voted .pet-emoji {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      font-size: 48px;
+      z-index: 2;
+      animation: bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ── VOTED BADGE ── */
+    .voted-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: white;
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0;
+      transform: scale(0.8) translateY(-8px);
+      transition: all 0.4s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 3;
+    }
+
+    .card.cat .voted-badge { color: var(--cat-color); }
+    .card.dog .voted-badge { color: var(--dog-color); }
+    .card.voted .voted-badge { opacity: 1; transform: scale(1) translateY(0); }
+
+    /* ── CARD BODY ── */
+    .card-body { padding: 24px 28px 28px; }
+
+    .card-body h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 4px;
+    }
+
+    .card-body .tagline {
+      font-size: 13px;
+      color: #9A8E82;
+      margin-bottom: 20px;
+    }
+
+    /* ── VOTE BUTTON ── */
+    .vote-btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .card.cat .vote-btn { background: var(--cat-color); color: white; }
+    .card.dog .vote-btn { background: var(--dog-color); color: white; }
+    .vote-btn:hover  { filter: brightness(1.1); transform: translateY(-1px); }
+    .vote-btn:active { transform: translateY(0); }
+    .vote-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+
+    /* ── FOOTER INFO ── */
+    .tip {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #B8AFA6;
+      text-align: center;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .hostname {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #C8BFB6;
+      text-align: center;
+      letter-spacing: 0.5px;
+      animation: fadeUp 0.8s 0.5s ease both;
+    }
+
+    /* ── CONFETTI ── */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      opacity: 0;
+      animation: confettiFall 1.2s ease-out forwards;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: #B8AFA6;
+      letter-spacing: 1px;
+      animation: fadeUp 0.8s 0.6s ease both;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.3) rotate(-10deg); }
+      70%  { transform: scale(0.9) rotate(5deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes confettiFall {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(300px) rotate(720deg); }
+    }
+
+    @media (max-width: 600px) {
+      .cards { grid-template-columns: 1fr; }
+      .card-image { height: 220px; }
+      .pet-emoji { font-size: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="eyebrow">Cast your vote</p>
+    <h1>The Best Pets</h1>
+    <p>{% block subtitle %}Which side are you on?{% endblock %}</p>
+  </header>
+
+  <div class="cards">
+    {% block cards %}{% endblock %}
+  </div>
+
+  {% block footer_info %}{% endblock %}
+
+  <div class="confetti-container" id="confetti"></div>
+
+  <footer>THE BEST PETS · REAL-TIME VOTING</footer>
+
+  <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+
+  <script>
+    function launchConfetti(color) {
+      const container = document.getElementById('confetti');
+      container.innerHTML = '';
+      const colors = [color, '#F5E6D3', '#fff', '#D3E8F0'];
+      for (let i = 0; i < 40; i++) {
+        const piece = document.createElement('div');
+        piece.classList.add('confetti-piece');
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.top = '-20px';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.width = (6 + Math.random() * 8) + 'px';
+        piece.style.height = (6 + Math.random() * 8) + 'px';
+        piece.style.animationDelay = (Math.random() * 0.4) + 's';
+        piece.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
+        container.appendChild(piece);
+      }
+      setTimeout(() => container.innerHTML = '', 2000);
+    }
+
+    document.querySelectorAll('.vote-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const color = this.classList.contains('a') ? '#C2855A' : '#4A7C8E';
+        launchConfetti(color);
+      });
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
+
+</body>
+</html>
