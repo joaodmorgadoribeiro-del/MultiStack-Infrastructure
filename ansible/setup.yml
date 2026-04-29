@@ -108,6 +108,12 @@
       docker_network:
         name: vote-network
         state: present
+    
+    - name: Pull latest Vote image
+      docker_image:
+        name: ireneromero95/vote:latest
+        source: pull
+        force_source: yes
  
     - name: Run Vote App (Python)
       docker_container:
@@ -115,6 +121,7 @@
         image: ireneromero95/vote:latest
         state: started
         recreate: yes
+        pull: yes
         restart_policy: always
         networks:
           - name: vote-network
